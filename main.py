@@ -5,7 +5,7 @@ from openai import OpenAI
 
 app = FastAPI(title="矿场巡检系统后端")
 
-# 1. 数据库配置
+
 DB_CONFIG = {
     "dbname": "mine_inspection",
     "user": "admin",
@@ -14,7 +14,7 @@ DB_CONFIG = {
     "port": "5432"
 }
 
-# 2. 初始化 DeepSeek 客户端 (替换为你自己的 Key)
+
 client = OpenAI(
     api_key="sk-4e2a2dc1a3a54f82a7127d22ecb079bc", 
     base_url="https://api.deepseek.com"
@@ -67,12 +67,9 @@ def create_risk_point(data: RiskPointCreate):
     conn.close()
     return {"message": "风险点创建成功", "new_risk_id": new_id}
 
-# ==========================================
-# 3. 新增：AI 风险评估接口
-# ==========================================
 @app.get("/api/ai_report/{risk_id}")
 def generate_ai_report(risk_id: int):
-    # 第一步：去数据库查出这个风险点的信息
+
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     cur.execute("SELECT risk_name, risk_type, severity, current_status FROM risk_point WHERE risk_id = %s;", (risk_id,))
@@ -85,7 +82,7 @@ def generate_ai_report(risk_id: int):
 
     risk_name, risk_type, severity, current_status = row
 
-    # 第二步：构造提示词（Prompt），发给 DeepSeek
+  
     prompt = f"""
     你是一个专业的矿山安全专家。请根据以下风险点数据，生成一段简短的巡检评估报告。
     数据：
@@ -105,14 +102,13 @@ def generate_ai_report(risk_id: int):
                 {"role": "system", "content": "你是一个专业的矿山安全评估助手。"},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=300, # 限制输出长度，防止长篇大论
-            temperature=0.3 # 数值越低，回答越严谨
+            max_tokens=300, 
+            temperature=0.3 
         )
         ai_text = response.choices[0].message.content
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI调用失败: {str(e)}")
 
-    # 第四步：返回给前端
     return {
         "risk_id": risk_id,
         "risk_name": risk_name,
